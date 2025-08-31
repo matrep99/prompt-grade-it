@@ -8,9 +8,14 @@ const Index = () => {
   const [userType, setUserType] = useState<'docente' | 'studente' | null>(null);
   const [accessCode, setAccessCode] = useState('');
 
-  const handleDocenteLogin = () => {
-    // TODO: Implementer il login docente
-    console.log('Login docente');
+  const handleDocenteLogin = async () => {
+    try {
+      const { createTest } = await import('@/utils/api');
+      const response = await createTest({ title: 'Nuova verifica' });
+      window.location.assign('/builder/' + response.id);
+    } catch (error: any) {
+      alert('Errore durante la creazione della verifica: ' + (error.message || 'Errore sconosciuto'));
+    }
   };
 
   const handleStudenteAccess = () => {
@@ -107,11 +112,12 @@ const Index = () => {
                 </div>
                 <div className="space-y-4">
                   <Button 
-                    onClick={() => setUserType('docente')}
+                    id="create-test-btn"
+                    onClick={handleDocenteLogin}
                     className="w-full qg-gradient-primary text-white hover:opacity-90 transition-opacity"
                     size="lg"
                   >
-                    Accedi come Docente
+                    Crea nuova verifica
                   </Button>
                   <div className="flex items-center justify-center space-x-6 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-2">

@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  DOCENTE
+  STUDENTE
+  ADMIN
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum QuestionType {
+  MCQ
+  TF
+  SHORT
+  LONG
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(DOCENTE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ownedTests Test[]
+
+  @@map("users")
+}
+
+model Test {
+  id          String     @id @default(cuid())
+  title       String
+  description String     @default("")
+  status      TestStatus @default(DRAFT)
+  ownerId     String
+  settings    Json       @default("{}")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@index([ownerId])
+  @@map("tests")
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  testId        String
+  questionIndex Int
+  type          QuestionType
+  prompt        String
+  options       Json         @default("[]")
+  correctAnswer Json         @default("{}")
+  points        Int          @default(1)
+  rubric        Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([questionIndex])
+  @@map("questions")
+}
