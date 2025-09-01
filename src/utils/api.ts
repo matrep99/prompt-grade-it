@@ -5,29 +5,39 @@ interface ApiOptions extends RequestInit {
 }
 
 export const apiFetch = async (path: string, options: ApiOptions = {}) => {
-  const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${path}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
   
-  const config: RequestInit = {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  };
+  try {
+    const config: RequestInit = {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      signal: controller.signal,
+      ...options,
+    };
 
-  if (config.body && typeof config.body === 'object') {
-    config.body = JSON.stringify(config.body);
+    if (config.body && typeof config.body === 'object') {
+      config.body = JSON.stringify(config.body);
+    }
+
+    const response = await fetch(path, config);
+    clearTimeout(timeout);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message = errorData.error?.message || `Errore HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    return response.json();
+  } catch (e: any) {
+    clearTimeout(timeout);
+    const reason = e?.name === 'AbortError' ? 'timeout' : (e?.message || 'network');
+    throw new Error(`Connessione al server non riuscita (${reason}).`);
   }
-
-  const response = await fetch(url, config);
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
 };
 
 // Test API functions

@@ -12,6 +12,11 @@ const Index = () => {
     try {
       const { createTest } = await import('@/utils/api');
       const response = await createTest({ title: 'Nuova verifica' });
+      
+      if (!response?.id) {
+        throw new Error('Risposta server non valida: manca l\'ID.');
+      }
+      
       window.location.assign('/builder/' + response.id);
     } catch (error: any) {
       alert('Errore durante la creazione della verifica: ' + (error.message || 'Errore sconosciuto'));
