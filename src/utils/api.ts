@@ -26,13 +26,16 @@ export const apiFetch = async (path: string, options: ApiOptions = {}) => {
     const response = await fetch(path, config);
     clearTimeout(timeout);
     
+    const text = await response.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) {}
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const message = errorData.error?.message || `Errore HTTP ${response.status}`;
-      throw new Error(message);
+      const serverMsg = data?.error?.message || `HTTP ${response.status}`;
+      throw new Error(serverMsg);
     }
 
-    return response.json();
+    return data;
   } catch (e: any) {
     clearTimeout(timeout);
     const reason = e?.name === 'AbortError' ? 'timeout' : (e?.message || 'network');

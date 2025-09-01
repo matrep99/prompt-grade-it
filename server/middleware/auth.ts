@@ -17,12 +17,22 @@ declare global {
   }
 }
 
-export const requireAuth = (requiredRole?: UserRole) => {
+interface AuthOptions
+{
+  allowDevBypass?: boolean;
+}
+
+export const requireAuth = (requiredRole?: UserRole, options: AuthOptions = {}) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const token = req.cookies.auth_token;
+      const isDev = process.env.NODE_ENV !== 'production';
       
       if (!token) {
+        if (isDev && options.allowDevBypass) {
+          // In dev, allow bypass without auth
+          return next();
+        }
         return res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
@@ -47,6 +57,13 @@ export const requireAuth = (requiredRole?: UserRole) => {
       next();
     } catch (error) {
       console.error('Auth error:', error);
+      const isDev = process.env.NODE_ENV !== 'production';
+      
+      if (isDev && options.allowDevBypass) {
+        // In dev, allow bypass on auth errors
+        return next();
+      }
+      
       return res.status(401).json({
         error: {
           code: 'INVALID_TOKEN',

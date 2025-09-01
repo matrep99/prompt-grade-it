@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import { prisma } from '../src/lib/prisma.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -11,7 +11,6 @@ import testRoutes from './routes/tests.js';
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -47,19 +46,29 @@ app.use('/api/tests', testRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, timestamp: new Date().toISOString() });
+  res.json({ ok: true, env: process.env.NODE_ENV, timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health/db', async (req, res) => {
+  try
+  {
+    await prisma.$queryRaw`SELECT 1`;
+    return res.json({ ok: true });
+  }
+  catch (e)
+  {
+    console.error('DB health error:', e);
+    return res.status(500).json({ ok: false, error: 'DB_NOT_AVAILABLE' });
+  }
 });
 
 // Error handling middleware
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('Server error:', err);
-  
-  res.status(err.status || 500).json({
-    error: {
-      code: err.code || 'INTERNAL_ERROR',
-      message: err.message || 'Errore interno del server',
-      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    }
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  const status = err?.statusCode || 500;
+  const code = err?.code || 'INTERNAL_ERROR';
+  return res.status(status).json({
+    error: { code, message: status === 500 ? 'Errore interno del server' : (err.message || 'Errore') }
   });
 });
 

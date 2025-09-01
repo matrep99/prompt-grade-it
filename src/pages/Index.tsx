@@ -19,7 +19,7 @@ const Index = () => {
       
       window.location.assign('/builder/' + response.id);
     } catch (error: any) {
-      alert('Errore durante la creazione della verifica: ' + (error.message || 'Errore sconosciuto'));
+      alert('Errore durante la creazione della verifica: ' + error.message);
     }
   };
 
